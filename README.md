@@ -5,7 +5,7 @@ A containerized ETL (Extract, Transform, Load) workflow automation project built
 ## Overview
 
 This project implements an automated data pipeline that:
-- Extracts data from a SQL Server `MsBlokAtribut` table
+- Extracts data from a SQL Server `table` table
 - Performs optional data transformations
 - Loads the processed data into a PostgreSQL `L1_Table`
 
@@ -82,7 +82,7 @@ ls -la
 
 **Source Database (SQL Server):**
 - Ensure you have access to a SQL Server instance
-- The source table `MsBlokAtribut` should exist and be accessible
+- The source table `table` should exist and be accessible
 - Note the connection details: server address, port, database name, credentials
 
 **Target Database (PostgreSQL):**
@@ -136,7 +136,7 @@ Before running the ETL flow, you need to create Prefect blocks for database conn
 prefect server start
 
 # Create blocks via CLI
-prefect block register --file flow/etl_level_l1_msblokatribut.py
+prefect block register --file flow/etl_level_l1_table.py
 
 # Or create manually
 prefect block create sqlalchemy-connector sql-block
@@ -206,7 +206,7 @@ except Exception as e:
 prefect deploy
 
 # Or run directly for testing
-docker-compose exec worker-pool-1-prd-local python flow/etl_level_l1_msblokatribut.py
+docker-compose exec worker-pool-1-prd-local python flow/etl_level_l1_table.py
 ```
 
 ### Step 8: Monitor and Troubleshoot
@@ -272,7 +272,7 @@ prefect-workflow-automation/
 ├── docker-compose.yaml          # Multi-service orchestration
 ├── requirements.txt             # Python dependencies
 ├── flow/                        # Prefect flows directory
-│   ├── etl_level_l1_msblokatribut.py  # Main ETL flow
+│   ├── etl_level_l1_table.py  # Main ETL flow
 │   ├── prefect.yaml             # Prefect deployment configuration
 │   └── packages/                # Shared utilities
 │       ├── __init__.py
@@ -347,14 +347,14 @@ Key environment variables in `docker-compose.yaml`:
 
 The `flow/prefect.yaml` contains deployment configuration:
 - **Work Pool**: `TPG_POOLS_POW-PRD-LOCAL`
-- **Entrypoint**: `etl_level_l1_msblokatribut.py:main_l1_table`
+- **Entrypoint**: `etl_level_l1_table.py:main_l1_table`
 - **Working Directory**: `/prefect-etl/prd/level1`
 
 ## ETL Process Details
 
 ### Extract Phase
 - Connects to SQL Server using Prefect SQLAlchemy connector
-- Executes query to retrieve all records from `MsBlokAtribut` table
+- Executes query to retrieve all records from `table` table
 - Returns data as pandas DataFrame
 
 ### Transform Phase
@@ -382,7 +382,7 @@ The `flow/prefect.yaml` contains deployment configuration:
 
 3. **Execute flow locally:**
    ```bash
-   python flow/etl_level_l1_msblokatribut.py
+   python flow/etl_level_l1_table.py
    ```
 
 ### Modifying SQL Queries
@@ -393,7 +393,7 @@ Update queries in `flow/packages/sql_statements.py`:
 
 ### Adding Transformations
 
-Modify the `transform_data` task in `etl_level_l1_msblokatribut.py` to implement data transformations.
+Modify the `transform_data` task in `etl_level_l1_table.py` to implement data transformations.
 
 ## Troubleshooting
 
