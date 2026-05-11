@@ -1,6 +1,5 @@
 pyodbc==5.3.0
 prefect-sqlalchemy==0.5.3
-sqlalchemy==2.0.45
 aiosqlite==0.22.1
 alembic==1.18.4
 annotated-doc==0.0.4

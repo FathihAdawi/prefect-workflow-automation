@@ -2,7 +2,6 @@
 # Use a specific Prefect image with your preferred Python version
 FROM prefecthq/prefect:3.5.0-python3.13
 
-# Install system dependencies for Microsoft ODBC Driver
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
@@ -11,13 +10,12 @@ RUN apt-get update && apt-get install -y \
     unixodbc-dev \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
-    && curl https://microsoft.com | gpg --dearmor \
-    && curl https://microsoft.com > /etc/apt/sources.list.d/mssql-release.list \
+    && curl -sSl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
+    && curl -sSl https://packages.microsoft.com/config/debian/12/prod.list -o /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
     && ACCEPT_EULA=Y apt-get install -y msodbcsql18
 
-# ENV APP_HOME=/home/app/web
-ENV APP_PATH=.
+ENV APP_PATH=/opt/prefect
 WORKDIR $APP_PATH
 
 COPY requirements.txt .
