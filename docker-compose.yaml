@@ -18,6 +18,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - prefect-network
 
 
   prefect-server:
@@ -28,7 +30,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://postgres:postgres@192.168.1.19/prefect
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://postgres:admin%40pow2026@postgres/prefect
       PREFECT_SERVER_API_HOST: 0.0.0.0
       PREFECT_API_URL: 'http://127.0.0.1:4200/api'
       PREFECT_SERVER_UI_API_URL: 'http://127.0.0.1:4200/api'
@@ -58,7 +60,7 @@ services:
       prefect-server:
         condition: service_healthy
     environment:
-      PREFECT_API_URL: http://127.0.0.1:4200/api
+      PREFECT_API_URL: http://prefect-server:4200/api
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -76,7 +78,7 @@ services:
       prefect-server:
         condition: service_healthy
     environment:
-      PREFECT_API_URL: http://127.0.0.1:4200/api
+      PREFECT_API_URL: http://prefect-server:4200/api
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
