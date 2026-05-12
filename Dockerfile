@@ -5,15 +5,14 @@ FROM prefecthq/prefect:3.5.0-python3.13
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
-    gnupg2 \
-    apt-transport-https \
     unixodbc-dev \
     --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -sSl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
-    && curl -sSl https://packages.microsoft.com/config/debian/12/prod.list -o /etc/apt/sources.list.d/mssql-release.list \
+    && curl -sSL -O https://packages.microsoft.com/config/debian/$(. /etc/os-release && echo "$VERSION_ID" | cut -d '.' -f 1)/packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && rm packages-microsoft-prod.deb \
     && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql18
+    && ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive apt-get install -y msodbcsql18 \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV APP_PATH=/opt/prefect
 WORKDIR $APP_PATH
