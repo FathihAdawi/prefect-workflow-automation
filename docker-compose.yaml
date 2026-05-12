@@ -9,7 +9,7 @@ services:
     image: postgres:17
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: admin@pow2026
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: prefect
     volumes:
       - postgres_data:/var/lib/postgresql/data
