@@ -1,10 +1,4 @@
 services:
-
-  ###################################################
-  # WORK-POOL-PRD-ALL
-  # Created by: Fathih Adawi Ahmad
-  # Created Date: 2026-04-06 10:55 AM
-  ###################################################
   postgres:
     image: postgres:17
     environment:
@@ -19,59 +13,45 @@ services:
       timeout: 5s
       retries: 5
 
-
   prefect-server:
-    # build: .
-    build: .
-    image: prefecthq/prefect:3.5.0-python3.13
+    image: prefecthq/prefect:3.7.8-python3.13
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1/prefect
-      PREFECT_SERVER_API_HOST: 0.0.0.0
-      PREFECT_API_URL: 'http://127.0.0.1:4200/api'
-      PREFECT_SERVER_UI_API_URL: 'http://127.0.0.1:4200/api'
-    command: prefect server start --no-services
+      PREFECT_SERVER_API_HOST: "0.0.0.0"
+      PREFECT_API_URL: "http://127.0.0.1:4200/api"
+      PREFECT_UI_URL: "http://127.0.0.1:4200/api"
+      PREFECT_API_REQUEST_TIMEOUT: "120"
+      PREFECT_RUNNER_HEARTBEAT_FREQUENCY: "120"
+      PREFECT_TASKS_REFRESH_CACHE: "true"
+      PREFECT_WORKER_HEARTBEAT_SECONDS: "60"
+      PREFECT_API_DATABASE_CONNECTION_TIMEOUT: "10"
+    command: prefect server start
     ports:
       - "4200:4200"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:4200/api/health', timeout=1)", "apt-key"]
+      test: [
+        "CMD", 
+        "python", 
+        "-c", 
+        "import urllib.request as u; u.urlopen('http://127.0.0.1:4200/api/health', timeout=1)", 
+        "apt-key"
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - prefect-network
 
-  worker-pool-1-prd-local:
+  worker-pool-1-local:
     build: .
-      # context: ./
-      # dockerfile: myapp.dockerfile
-    image: prefecthq/prefect:3.5.0-python3.13
-    container_name: prefect-local-worker-prd-pool
-    command: prefect worker start --pool "TPG_POOLS_POW-PRD-LOCAL" --name "WORKER-1-PRD-LOCAL"
-    depends_on:
-      prefect-server:
-        condition: service_healthy
-    environment:
-      PREFECT_API_URL: http://127.0.0.1:4200/api
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - prefect-network
-  
-  worker-pool-1-dev-local:
-    build: .
-      # context: ./
-      # dockerfile: myapp.dockerfile
-    image: prefecthq/prefect:3.5.0-python3.13
-    container_name: prefect-local-worker-dev-pool
-    command: prefect worker start --pool "TPG_POOLS_POW-DEV-LOCAL" --name "WORKER-1-PRD-DEV-LOCAL"
+    image: prefecthq/prefect:3.7.8-python3.13
+    container_name: prefect-local-worker-pool
+    command: prefect worker start --pool "WORKER-1" --name "WORKER-1-LOCAL"
     depends_on:
       prefect-server:
         condition: service_healthy
@@ -83,7 +63,7 @@ services:
     networks:
       - prefect-network
     
-  ############################################################################################################
+  ###########################################################################
 
 volumes:
   postgres_data:
