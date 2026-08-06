@@ -1,447 +1,204 @@
-# Prefect Workflow Automation
+# Prefect workflow automation
 
-A containerized ETL (Extract, Transform, Load) workflow automation project built with Prefect 3.x, designed for data processing pipelines that extract data from SQL Server databases and load it into PostgreSQL.
+This repository provides a simple Prefect 3 setup that runs a workflow with Docker Compose, a local Python virtual environment, and optional scheduling.
 
-## Overview
+## What this project does
 
-This project implements an automated data pipeline that:
-- Extracts data from a SQL Server `table` table
-- Performs optional data transformations
-- Loads the processed data into a PostgreSQL `L1_Table`
-
-The workflow is orchestrated using Prefect, with containerized deployment using Docker and Docker Compose.
-
-## Features
-
-- **Containerized Deployment**: Full Docker setup with Prefect server and worker pools
-- **Database Connectivity**: Support for SQL Server (via ODBC) and PostgreSQL
-- **Modular Architecture**: Separated ETL tasks with Prefect's task-based workflow
-- **Scalable**: Worker pools for distributed execution
-- **Version Control**: Tagged versions for tasks and flows
-- **Health Checks**: Built-in health monitoring for services
+- Starts a Prefect server and PostgreSQL database with Docker Compose.
+- Runs a worker that can execute Prefect deployments.
+- Lets you deploy a flow from a Python entrypoint such as `flow.py`.
+- Lets you attach a schedule so the deployment runs automatically.
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Python 3.13
-- Access to SQL Server and PostgreSQL databases
-- Microsoft ODBC Driver 18 for SQL Server (automatically installed in container)
+- Docker Engine or Docker Desktop
+- Docker Compose plugin
+- Python 3.11+ (the container uses Python 3.13)
+- Git
 
-## Setup
-
-This section provides detailed step-by-step instructions to set up the Prefect Workflow Automation project from scratch.
-
-### Step 1: Install Prerequisites
-
-#### Docker and Docker Compose
-```bash
-# Install Docker (Ubuntu/Debian)
-sudo apt-get update
-sudo apt-get install docker.io docker-compose-plugin
-
-# Start Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Add user to docker group (optional, avoids using sudo)
-sudo usermod -aG docker $USER
-# Logout and login again for group changes to take effect
-
-# Verify installation
-docker --version
-docker compose version
-```
-
-#### Python 3.13 (for local development)
-```bash
-# Install Python 3.13 (Ubuntu/Debian)
-sudo apt-get install software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get update
-sudo apt-get install python3.13 python3.13-venv
-
-# Verify installation
-python3.13 --version
-```
-
-### Step 2: Clone and Prepare the Project
+## 1. Clone the repository
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+git clone <your-repository-url>
 cd prefect-workflow-automation
-
-# Verify project structure
-ls -la
-# Expected output should show: Dockerfile, docker-compose.yaml, requirements.txt, flow/, etc.
 ```
 
-### Step 3: Configure Environment
+## 2. Start the Prefect server with Docker Compose
 
-#### Database Preparation
-
-**Source Database (SQL Server):**
-- Ensure you have access to a SQL Server instance
-- The source table `table` should exist and be accessible
-- Note the connection details: server address, port, database name, credentials
-
-**Target Database (PostgreSQL):**
-- Prepare a PostgreSQL database for the target data
-- The system will create the `L1_Table` table automatically, but ensure the database exists
-- Note the connection details: host, port, database name, credentials
-
-#### Environment Variables (Optional)
-
-Create a `.env` file in the project root for sensitive configuration:
-```bash
-# .env file
-PREFECT_API_DATABASE_PASSWORD=your_secure_password
-SQL_SERVER_PASSWORD=your_sql_server_password
-POSTGRES_PASSWORD=your_postgres_password
-```
-
-### Step 4: Configure Prefect Blocks
-
-Before running the ETL flow, you need to create Prefect blocks for database connections.
-
-#### Method 1: Using Prefect UI (Recommended)
-
-1. Start the services:
-   ```bash
-   docker-compose up --build -d
-   ```
-
-2. Access Prefect UI at http://localhost:4200
-
-3. Navigate to **Blocks** in the sidebar
-
-4. Create SQLAlchemy Connector blocks:
-
-   **For SQL Server (Source):**
-   - Click **+** to create a new block
-   - Select **SQLAlchemy Connector**
-   - Name: `sql-block`
-   - Connection String: `mssql+pyodbc://username:password@server/database?driver=ODBC+Driver+18+for+SQL+Server`
-
-   **For PostgreSQL (Target):**
-   - Click **+** to create a new block
-   - Select **SQLAlchemy Connector**
-   - Name: `postgre-block`
-   - Connection String: `postgresql://username:password@host:port/database`
-
-#### Method 2: Using Prefect CLI
+From the project root, start the database and Prefect UI/API:
 
 ```bash
-# Start Prefect server locally first
-prefect server start
-
-# Create blocks via CLI
-prefect block register --file flow/etl_level_l1_table.py
-
-# Or create manually
-prefect block create sqlalchemy-connector sql-block
-prefect block create sqlalchemy-connector postgre-block
+docker compose up -d postgres prefect-server
 ```
 
-### Step 5: Build and Start Services
+Verify that the services are running:
 
 ```bash
-# Build and start all services
-docker-compose up --build
-
-# Or run in detached mode
-docker-compose up --build -d
-
-# View logs
-docker-compose logs -f
+docker compose ps
 ```
 
-### Step 6: Verify Setup
+Open the Prefect UI in your browser:
 
-#### Check Service Health
+```text
+http://localhost:4200
+```
+
+If you want to follow the logs:
 
 ```bash
-# Check running containers
-docker-compose ps
-
-# Expected services:
-# - postgres (healthy)
-# - prefect-server (healthy)
-# - worker-pool-1-prd-local (running)
+docker compose logs -f prefect-server
 ```
 
-#### Test Database Connections
+## 3. Create a Python virtual environment
+
+### Windows PowerShell
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### Linux or macOS
 
 ```bash
-# Access Prefect container
-docker-compose exec prefect-server bash
-
-# Test connections (inside container)
-python -c "
-from prefect_sqlalchemy import SqlAlchemyConnector
-try:
-    with SqlAlchemyConnector.load('sql-block') as conn:
-        print('SQL Server connection: SUCCESS')
-except Exception as e:
-    print(f'SQL Server connection: FAILED - {e}')
-
-try:
-    with SqlAlchemyConnector.load('postgre-block') as conn:
-        print('PostgreSQL connection: SUCCESS')
-except Exception as e:
-    print(f'PostgreSQL connection: FAILED - {e}')
-"
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-#### Verify Prefect UI Access
-
-- Open browser to http://localhost:4200
-- You should see the Prefect dashboard
-- Check that the work pool `TPG_POOLS_POW-PRD-LOCAL` is available
-
-### Step 7: Deploy and Test the Flow
+Set the Prefect API URL so your local Python environment talks to the Docker Compose server:
 
 ```bash
-# Deploy the flow
-prefect deploy
-
-# Or run directly for testing
-docker-compose exec worker-pool-1-prd-local python flow/etl_level_l1_table.py
+export PREFECT_API_URL=http://127.0.0.1:4200/api
 ```
 
-### Step 8: Monitor and Troubleshoot
+On Windows PowerShell:
 
-#### Common Setup Issues
+```powershell
+$env:PREFECT_API_URL="http://127.0.0.1:4200/api"
+```
 
-1. **Port Conflicts:**
-   ```bash
-   # Check if ports are in use
-   sudo netstat -tulpn | grep :4200
-   # If needed, change ports in docker-compose.yaml
-   ```
+## 4. Create a flow entrypoint
 
-2. **Permission Issues:**
-   ```bash
-   # Ensure proper permissions on project directory
-   sudo chown -R $USER:$USER .
-   ```
+The repository includes a deployment example in `flow/deploy.py`, but you can also define your own entrypoint such as `flow.py`.
 
-3. **Database Connection Issues:**
-   - Verify firewall settings
-   - Check database server is running and accessible
-   - Validate connection strings
+Example:
 
-#### Logs and Debugging
+```python
+from prefect import flow
+
+
+@flow
+def hello_flow():
+    print("Hello from Prefect")
+
+
+if __name__ == "__main__":
+    hello_flow()
+```
+
+## 5. Deploy the flow
+
+The easiest way in this repository is to adapt `flow/deploy.py` to point to your flow and then run it:
 
 ```bash
-# View all service logs
-docker-compose logs
-
-# View specific service logs
-docker-compose logs prefect-server
-docker-compose logs worker-pool-1-prd-local
-
-# Follow logs in real-time
-docker-compose logs -f worker-pool-1-prd-local
+python flow/deploy.py
 ```
 
-### Step 9: Production Deployment Considerations
+A minimal deployment script looks like this:
 
-For production deployment:
+```python
+from prefect import flow
 
-1. **Security:**
-   - Use environment variables for sensitive data
-   - Configure proper network isolation
-   - Set up SSL/TLS for database connections
 
-2. **Scaling:**
-   - Adjust worker pool size based on workload
-   - Configure resource limits in docker-compose.yaml
-   - Set up monitoring and alerting
+@flow
+def my_flow():
+    print("Running my flow")
 
-3. **Backup:**
-   - Regular database backups
-   - Flow deployment backups
-   - Configuration backups
 
-## Project Structure
-
+if __name__ == "__main__":
+    my_flow.deploy(
+        name="demo-deployment",
+        work_pool_name="WORKER-1",
+    )
 ```
+
+The worker defined in `docker-compose.yaml` uses the pool name `WORKER-1`, so the deployment and worker should use the same pool name.
+
+## 6. Start the worker
+
+If you want to use the worker that is already defined in Docker Compose, start it with:
+
+```bash
+docker compose up -d worker-pool-1-local
+```
+
+If you prefer to run a local worker from your virtual environment instead, use:
+
+```bash
+prefect worker start --pool "WORKER-1" --name "local-worker"
+```
+
+## 7. Run the deployment manually
+
+After the deployment is created, you can run it from the Prefect UI or from the CLI:
+
+```bash
+prefect deployment run 'demo-deployment/demo-deployment'
+```
+
+Replace the deployment name with your own deployment path if needed.
+
+## 8. Create a schedule
+
+Schedules are usually added from the Prefect UI after the deployment exists.
+
+1. Open the Prefect UI.
+2. Go to Deployments.
+3. Open your deployment.
+4. Add a schedule.
+5. Use a cron expression such as:
+   - `0 * * * *` for every hour
+   - `*/15 * * * *` for every 15 minutes
+   - `0 9 * * *` for 9:00 AM every day
+
+You can also attach a schedule in Python when you deploy the flow, for example with a cron-based schedule object.
+
+## 9. Useful commands
+
+```bash
+# Stop everything
+docker compose down
+
+# Rebuild containers after changes
+docker compose up -d --build
+
+# View worker logs
+docker compose logs -f worker-pool-1-local
+```
+
+## Project structure
+
+```text
 prefect-workflow-automation/
-├── Dockerfile                    # Container build configuration
-├── docker-compose.yaml          # Multi-service orchestration
-├── requirements.txt             # Python dependencies
-├── flow/                        # Prefect flows directory
-│   ├── etl_level_l1_table.py  # Main ETL flow
-│   ├── prefect.yaml             # Prefect deployment configuration
-│   └── packages/                # Shared utilities
-│       ├── __init__.py
-│       └── sql_statements.py    # SQL query definitions
-├── LICENSE                      # Project license
-└── README.md                    # This file
+├── Dockerfile
+├── docker-compose.yaml
+├── requirements.txt
+├── flow/
+│   └── deploy.py
+└── README.md
 ```
-
-## Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd prefect-workflow-automation
-   ```
-
-2. **Configure database connections:**
-   - Update database connection strings in your Prefect blocks
-   - Ensure SQL Server and PostgreSQL are accessible
-
-3. **Build and start services:**
-   ```bash
-   docker-compose up --build
-   ```
-
-This will start:
-- PostgreSQL database for Prefect metadata
-- Prefect server on port 4200
-- Worker pool for executing flows
-
-## Usage
-
-### Accessing Prefect UI
-
-Once services are running, access the Prefect UI at: http://localhost:4200
-
-### Running the ETL Flow
-
-The main ETL flow can be triggered through the Prefect UI or via CLI:
-
-```bash
-# Deploy the flow
-prefect deploy
-
-# Or run directly (if configured)
-prefect flow run main_l1_table
-```
-
-### Database Configuration
-
-Create Prefect blocks for database connections:
-
-1. **SQL Server Block** (`sql-block`):
-   - Configure connection to source SQL Server database
-   - Use SQLAlchemy connection string format
-
-2. **PostgreSQL Block** (`postgre-block`):
-   - Configure connection to target PostgreSQL database
-   - Ensure the target table `L1_Table` exists or will be created
-
-## Configuration
-
-### Environment Variables
-
-Key environment variables in `docker-compose.yaml`:
-
-- `PREFECT_API_DATABASE_CONNECTION_URL`: PostgreSQL connection for Prefect metadata
-- `PREFECT_API_URL`: API endpoint for Prefect server
-- `PREFECT_SERVER_API_HOST`: Host binding for server
-
-### Prefect Deployment
-
-The `flow/prefect.yaml` contains deployment configuration:
-- **Work Pool**: `TPG_POOLS_POW-PRD-LOCAL`
-- **Entrypoint**: `etl_level_l1_table.py:main_l1_table`
-- **Working Directory**: `/prefect-etl/prd/level1`
-
-## ETL Process Details
-
-### Extract Phase
-- Connects to SQL Server using Prefect SQLAlchemy connector
-- Executes query to retrieve all records from `table` table
-- Returns data as pandas DataFrame
-
-### Transform Phase
-- Currently a pass-through (no transformations applied)
-- Can be extended for data cleaning, type conversions, etc.
-
-### Load Phase
-- Deletes existing records from target `L1_Table`
-- Inserts transformed data using pandas `to_sql` method
-- Uses SQLAlchemy engine for database operations
-
-## Development
-
-### Local Development Setup
-
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Run Prefect locally:**
-   ```bash
-   prefect server start
-   ```
-
-3. **Execute flow locally:**
-   ```bash
-   python flow/etl_level_l1_table.py
-   ```
-
-### Modifying SQL Queries
-
-Update queries in `flow/packages/sql_statements.py`:
-- `get_data_table()`: Source data extraction query
-- `del_data_table()`: Target table cleanup query
-
-### Adding Transformations
-
-Modify the `transform_data` task in `etl_level_l1_table.py` to implement data transformations.
 
 ## Troubleshooting
 
-### Common Issues
+- If the UI is not available yet, wait a few seconds and check `docker compose ps`.
+- If the worker cannot connect, make sure `PREFECT_API_URL` points to `http://127.0.0.1:4200/api`.
+- If Docker complains about ports already being used, stop the conflicting process or change the port mapping in `docker-compose.yaml`.
+- If PowerShell blocks activation of the virtual environment, run:
 
-1. **Database Connection Errors**:
-   - Verify database credentials and network connectivity
-   - Check Prefect block configurations
-
-2. **ODBC Driver Issues**:
-   - Ensure Microsoft ODBC Driver 18 is properly installed
-   - Check container logs for driver installation errors
-
-3. **Worker Pool Issues**:
-   - Verify work pool name matches between deployment and docker-compose
-   - Check worker container logs
-
-### Logs
-
-View logs for specific services:
-```bash
-# Prefect server logs
-docker-compose logs prefect-server
-
-# Worker logs
-docker-compose logs worker-pool-1-prd-local
-
-# PostgreSQL logs
-docker-compose logs postgres
+```powershell
+Set-ExecutionPolicy -Scope Process RemoteSigned
 ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This project is licensed under the terms specified in the LICENSE file.
-
-## Version
-
-Current version: v1.0.0
-
-## Author
-
-Created by: Fathih Adawi Ahmad
-Created Date: 2026-04-06
