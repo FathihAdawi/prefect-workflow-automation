@@ -28,7 +28,8 @@ cd prefect-workflow-automation
 From the project root, start the database and Prefect UI/API:
 
 ```bash
-docker compose up -d postgres prefect-server
+docker compose build --no-cache
+docker compose up -d
 ```
 
 Verify that the services are running:
